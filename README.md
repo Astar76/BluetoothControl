@@ -5,5 +5,5 @@
 
 ## Скачать инструменты
 
-* Visual Studio Code - [https://code.visualstudio.com/Download][Download]
-* Android Studio - [https://developer.android.com/studio][Download]
+* Visual Studio Code - [Download](https://code.visualstudio.com/Download "Скачать")
+* Android Studio - [Download](https://developer.android.com/studio, "Скачать")
