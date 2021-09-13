@@ -7,3 +7,4 @@
 
 * Visual Studio Code - [Download](https://code.visualstudio.com/Download "Скачать")
 * Android Studio - [Download](https://developer.android.com/studio, "Скачать")
+* Arduino IDE - [Download](https://www.arduino.cc/en/software "Скачать")
