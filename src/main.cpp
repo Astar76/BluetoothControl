@@ -23,18 +23,33 @@
 #define CMD_ENABLE_LED  0x1
 #define CMD_SERVO_ANGLE 0x2 
 
-BLECharacteristic* controlRequest; 
-BLECharacteristic* controlResponse; 
+BLECharacteristic* controlRequest;
+BLECharacteristic* controlResponse;
 BLECharacteristic* workTime;
 
-Servo servo; 
+Servo servo;
 
+unsigned long timerMillis = 0;
+bool isConnected = false;
 
 void setupBluetooth();
 void setupLeds();
 void setupServo();
 void enableLed(int pin, bool enable);
 void rotateServo(int angle);
+void sendWorkedTime(int seconds);
+
+
+class BluetoothServerEventCallback : public BLEServerCallbacks {
+  void onConnect(BLEServer * server) 
+  {
+    isConnected = true;
+  } 
+  void onDisconnect(BLEServer * server) 
+  {
+    isConnected = false;
+  }
+};
 
 class BluetoothEventCallback : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* characteristic) 
@@ -43,11 +58,10 @@ class BluetoothEventCallback : public BLECharacteristicCallbacks {
     if (data[0] == CMD_ENABLE_LED) { 
       enableLed(data[1], data[2] > 0); 
     } else if (data[0] == CMD_SERVO_ANGLE) {
-      rotateServo(data[1]); 
+      rotateServo(data[1]);
     }
   }
 }; 
-
 
 void setup() {
   Serial.begin(115200);
@@ -58,8 +72,12 @@ void setup() {
   setupServo();
 }
 
-void loop() {
-  
+void loop() { 
+  if (millis() - timerMillis > 5000) {
+    timerMillis = millis();
+
+    sendWorkedTime(timerMillis / 1000); 
+  } 
 }
 
 void setupBluetooth() 
@@ -67,6 +85,7 @@ void setupBluetooth()
   BLEDevice::init(NAME_DEVICE);
 
   BLEServer* server = BLEDevice::createServer();
+  server->setCallbacks(new BluetoothServerEventCallback());
   BLEService* serviceControl  = server->createService(SERVICE_CONTROL_UUID);
   controlRequest = serviceControl->createCharacteristic(CONTROL_REQUEST_UUID, BLECharacteristic::PROPERTY_WRITE);
   controlRequest->setCallbacks(new BluetoothEventCallback());
@@ -100,6 +119,7 @@ void setupServo()
 	ESP32PWM::allocateTimer(1);
 	ESP32PWM::allocateTimer(2);
 	ESP32PWM::allocateTimer(3);
+
   servo.setPeriodHertz(50);// Standard 50hz servo
   servo.attach(PIN_SERVO, 500, 2400); 
 } 
@@ -112,4 +132,10 @@ void enableLed(int pin, bool enable)
 void rotateServo(int angle) 
 {
   servo.write(angle); 
+}
+
+void sendWorkedTime(int seconds)
+{
+  workTime->setValue(seconds);
+  workTime->notify();
 }
