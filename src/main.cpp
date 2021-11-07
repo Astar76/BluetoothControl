@@ -38,12 +38,14 @@ void setupServo();
 void enableLed(int pin, bool enable);
 void rotateServo(int angle);
 void sendWorkedTime(int seconds);
+void sendDeviceState();
 
 
 class BluetoothServerEventCallback : public BLEServerCallbacks {
   void onConnect(BLEServer * server) 
   {
     isConnected = true;
+    sendDeviceState(); 
   } 
   void onDisconnect(BLEServer * server) 
   {
@@ -60,12 +62,16 @@ class BluetoothEventCallback : public BLECharacteristicCallbacks {
     } else if (data[0] == CMD_SERVO_ANGLE) {
       rotateServo(data[1]);
     }
+    sendDeviceState();
   }
 }; 
 
 void setup() {
   Serial.begin(115200);
   Serial.println("Launching...");
+
+  Serial1.begin(115200, SERIAL_8N1, -1, -1, true, 20000UL);
+
 
   setupBluetooth();
   setupLeds(); 
@@ -136,6 +142,23 @@ void rotateServo(int angle)
 
 void sendWorkedTime(int seconds)
 {
-  workTime->setValue(seconds);
-  workTime->notify();
+  if (isConnected) {
+    workTime->setValue(seconds);
+    workTime->notify();
+  }
+}
+
+void sendDeviceState() 
+{
+  if (isConnected) {
+    uint8_t data[5];
+    data[0] = PIN_LED_FIRST;                    
+    data[1] = digitalRead(PIN_LED_FIRST);
+    data[2] = PIN_LED_SECOND; 
+    data[3] = digitalRead(PIN_LED_SECOND);
+    data[4] = servo.read();
+    controlResponse->setValue(data, 5);
+    controlResponse->notify();
+    Serial.printf("LED %d: %d, LED %d: %d, Servo: %d\n", data[0], data[1], data[2], data[3], data[4]);
+  }
 }
